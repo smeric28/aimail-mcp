@@ -1,0 +1,29 @@
+{
+  "name": "aimail-mcp",
+  "version": "2.0.0",
+  "description": "Multi-account Email MCP Server (Outlook & Gmail)",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "dotenv": "^16.4.7",
+    "googleapis": "^144.0.0",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "isomorphic-fetch": "^3.0.0",
+    "@azure/msal-node": "^2.16.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/jest": "^29.5.14",
+    "@types/isomorphic-fetch": "^0.0.39",
+    "typescript": "^5.7.2",
+    "ts-node": "^10.9.2",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5"
+  }
+}

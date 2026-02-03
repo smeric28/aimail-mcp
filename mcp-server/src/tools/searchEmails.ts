@@ -7,7 +7,7 @@ interface Tool {
     type: "object";
     properties: {
       query: { type: "string"; description: "Search query" };
-      folder: { type: "string"; description: "Folder to search (default: inbox)" };
+      folder: { type: "string"; description: string };
       top: { type: "number"; description: "Max results (default: 10)" };
       accountId: { type: "string"; description: "Optional account ID to use" };
     };
@@ -78,8 +78,6 @@ export const searchEmailsTool: Tool = {
       };
     }
   },
-};
-
 };
 
 export function parseSearchQuery(query: string): { type: 'filter' | 'search', value: string } {
