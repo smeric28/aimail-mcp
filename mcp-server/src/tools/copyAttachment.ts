@@ -1,4 +1,4 @@
-import { Client } from "@microsoft/microsoft-graph-client";
+import { MailProvider } from "../types/mail.js";
 
 interface Tool {
     name: string;
@@ -9,11 +9,13 @@ interface Tool {
             sourceMessageId: { type: "string"; description: string };
             attachmentName: { type: "string"; description: string };
             targetDraftId: { type: "string"; description: string };
+            accountId: { type: "string"; description: "Optional account ID" };
+            mailbox: { type: "string"; description: "Optional shared mailbox email" };
         };
         required: string[];
     };
     handler: (
-        client: Client,
+        provider: MailProvider,
         args: Record<string, unknown>
     ) => Promise<{
         content: Array<{ type: "text"; text: string }>;
@@ -39,65 +41,62 @@ export const copyAttachmentTool: Tool = {
                 type: "string",
                 description: "ID of the draft to add the attachment to",
             },
+            accountId: {
+                type: "string",
+                description: "Optional account ID",
+            },
+            mailbox: {
+                type: "string",
+                description: "Optional shared mailbox email",
+            },
         },
         required: ["sourceMessageId", "attachmentName", "targetDraftId"],
     },
-    async handler(client: Client, args: Record<string, unknown>) {
+    async handler(provider: MailProvider, args: Record<string, unknown>) {
         const sourceId = args.sourceMessageId as string;
         const targetId = args.targetDraftId as string;
         const queryString = (args.attachmentName as string).toLowerCase();
 
         try {
-            // 1. List attachments of source message to find the ID
-            const attachmentsReq = await client.api(`/me/messages/${sourceId}/attachments`)
-                .select("id,name,size,contentType")
-                .get();
-
-            const attachments = attachmentsReq.value;
-            const match = attachments.find((a: any) => a.name.toLowerCase().includes(queryString));
+            // 1. List attachments of source message to find the match
+            const attachments = await provider.getAttachments(sourceId);
+            const match = attachments.find((a) => a.name.toLowerCase().includes(queryString));
 
             if (!match) {
                 return {
                     content: [{
                         type: "text",
-                        text: `Attachment matching '${queryString}' not found on message ${sourceId}. Available: ${attachments.map((a: any) => a.name).join(", ")}`
+                        text: `Attachment matching '${queryString}' not found on message ${sourceId}. Available: ${attachments.map((a) => a.name).join(", ")}`
                     }],
                     isError: true
                 };
             }
 
-            // 2. Get the actual attachment content (bytes)
-            // We need the raw Bytes.
-            const attachmentContent = await client.api(`/me/messages/${sourceId}/attachments/${match.id}`)
-                .get();
+            // 2. Get the actual attachment content (base64)
+            const contentBytes = await provider.getAttachmentContent(sourceId, match.id);
 
-            // Note: Graph API returns fileAttachment resource which has 'contentBytes' (base64)
-            if (!attachmentContent.contentBytes) {
+            if (!contentBytes) {
                 return {
                     content: [{
                         type: "text",
-                        text: `Attachment '${match.name}' does not appear to be a file attachment (missing contentBytes). Type: ${attachmentContent['@odata.type']}`
+                        text: `Attachment '${match.name}' has no downloadable content.`
                     }],
                     isError: true
                 };
             }
 
             // 3. Add to target draft
-            const newAttachment = {
-                "@odata.type": "#microsoft.graph.fileAttachment",
-                name: match.name, // Keep original name
-                contentBytes: attachmentContent.contentBytes,
-                contentType: attachmentContent.contentType
-            };
-
-            const result = await client.api(`/me/messages/${targetId}/attachments`)
-                .post(newAttachment);
+            await provider.addAttachmentToDraft(targetId, {
+                name: match.name,
+                contentType: match.contentType,
+                contentBytes: contentBytes,
+            });
 
             return {
                 content: [
                     {
                         type: "text",
-                        text: `Successfully copied attachment '${match.name}' to draft ${targetId}. New Attachment ID: ${result.id}`,
+                        text: `Successfully copied attachment '${match.name}' to draft ${targetId}.`,
                     },
                 ],
             };

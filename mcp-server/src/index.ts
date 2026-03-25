@@ -21,6 +21,9 @@ import { updateDraftTool } from "./tools/updateDraft.js";
 import { deleteDraftTool } from "./tools/deleteDraft.js";
 import { moveEmailTool } from "./tools/moveEmail.js";
 import { listFoldersTool } from "./tools/listFolders.js";
+import { findAttachmentsTool } from "./tools/findAttachments.js";
+import { copyAttachmentTool } from "./tools/copyAttachment.js";
+import { addAttachmentToDraftTool } from "./tools/addAttachmentToDraft.js";
 
 // Load config
 let multiConfig: MultiAccountConfig;
@@ -82,6 +85,9 @@ async function main() {
         deleteDraftTool,
         moveEmailTool,
         listFoldersTool,
+        findAttachmentsTool,
+        copyAttachmentTool,
+        addAttachmentToDraftTool,
       ],
     };
   });
@@ -116,6 +122,12 @@ async function main() {
           return await moveEmailTool.handler(provider, args || {});
         case "list_mail_folders":
           return await listFoldersTool.handler(provider, args || {});
+        case "find_attachments":
+          return await findAttachmentsTool.handler(provider, args || {});
+        case "copy_attachment_to_draft":
+          return await copyAttachmentTool.handler(provider, args || {});
+        case "add_attachment_to_draft":
+          return await addAttachmentToDraftTool.handler(provider, args || {});
         default:
           return {
             content: [{ type: "text", text: `Unknown tool: ${name}` }],
