@@ -4,6 +4,8 @@ import {
   MailMessage,
   MailFolder,
   MailAttachment,
+  CalendarEvent,
+  TimeSlot,
 } from "../types/mail.js";
 
 export class MicrosoftProvider implements MailProvider {
@@ -217,6 +219,127 @@ export class MicrosoftProvider implements MailProvider {
       contentType: attachment.contentType,
       contentBytes: attachment.contentBytes,
     });
+  }
+
+  async listCalendarEvents(
+    start: string,
+    end: string,
+    top: number = 50
+  ): Promise<CalendarEvent[]> {
+    const response = await this.client
+      .api(`${this.userPrefix}/calendarView`)
+      .query({ startDateTime: start, endDateTime: end })
+      .select("id,subject,start,end,organizer,attendees,location,bodyPreview,webLink,isOnlineMeeting,onlineMeeting")
+      .orderby("start/dateTime")
+      .top(Math.min(top, 100))
+      .get();
+
+    return (response.value || []).map((e: any) => this.mapEvent(e));
+  }
+
+  async createCalendarEvent(event: {
+    subject: string;
+    start: string;
+    end: string;
+    timeZone?: string;
+    attendees?: string[];
+    body?: string;
+    bodyType?: "text" | "HTML";
+    location?: string;
+    isOnlineMeeting?: boolean;
+  }): Promise<CalendarEvent> {
+    const tz = event.timeZone || "UTC";
+    const payload: any = {
+      subject: event.subject,
+      start: { dateTime: event.start, timeZone: tz },
+      end: { dateTime: event.end, timeZone: tz },
+      body: {
+        contentType: event.bodyType || "HTML",
+        content: event.body || "",
+      },
+    };
+
+    if (event.attendees && event.attendees.length > 0) {
+      payload.attendees = event.attendees.map((email) => ({
+        emailAddress: { address: email.trim() },
+        type: "required",
+      }));
+    }
+
+    if (event.location) {
+      payload.location = { displayName: event.location };
+    }
+
+    if (event.isOnlineMeeting) {
+      payload.isOnlineMeeting = true;
+      payload.onlineMeetingProvider = "teamsForBusiness";
+    }
+
+    const created = await this.client
+      .api(`${this.userPrefix}/events`)
+      .post(payload);
+
+    return this.mapEvent(created);
+  }
+
+  async findAvailableTimes(params: {
+    durationMinutes: number;
+    windowStart: string;
+    windowEnd: string;
+    attendees?: string[];
+    timeZone?: string;
+  }): Promise<TimeSlot[]> {
+    const tz = params.timeZone || "UTC";
+    const payload: any = {
+      attendees: (params.attendees || []).map((email) => ({
+        emailAddress: { address: email.trim() },
+        type: "required",
+      })),
+      timeConstraint: {
+        activityDomain: "work",
+        timeSlots: [
+          {
+            start: { dateTime: params.windowStart, timeZone: tz },
+            end: { dateTime: params.windowEnd, timeZone: tz },
+          },
+        ],
+      },
+      meetingDuration: `PT${params.durationMinutes}M`,
+      maxCandidates: 10,
+      isOrganizerOptional: false,
+      returnSuggestionReasons: false,
+      minimumAttendeePercentage: 100,
+    };
+
+    const response = await this.client
+      .api(`${this.userPrefix}/findMeetingTimes`)
+      .post(payload);
+
+    return (response.meetingTimeSuggestions || []).map((s: any) => ({
+      start: s.meetingTimeSlot?.start?.dateTime,
+      end: s.meetingTimeSlot?.end?.dateTime,
+      confidence: s.confidence,
+    }));
+  }
+
+  private mapEvent(e: any): CalendarEvent {
+    return {
+      id: e.id,
+      subject: e.subject || "",
+      start: e.start?.dateTime ? `${e.start.dateTime}${e.start.timeZone ? " " + e.start.timeZone : ""}` : "",
+      end: e.end?.dateTime ? `${e.end.dateTime}${e.end.timeZone ? " " + e.end.timeZone : ""}` : "",
+      organizer: e.organizer?.emailAddress?.address,
+      attendees: (e.attendees || []).map((a: any) => ({
+        email: a.emailAddress?.address,
+        name: a.emailAddress?.name,
+        response: a.status?.response,
+      })),
+      location: e.location?.displayName,
+      body: e.bodyPreview,
+      webLink: e.webLink,
+      isOnlineMeeting: e.isOnlineMeeting,
+      onlineMeetingUrl: e.onlineMeeting?.joinUrl,
+    };
   }
 
   private parseSearchQuery(query: string): {

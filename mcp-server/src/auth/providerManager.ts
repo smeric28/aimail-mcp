@@ -59,7 +59,7 @@ export class ProviderManager {
         tenantId: accountCfg.tenantId || this.config.common.outlook?.tenantId || "organizations",
         clientSecret: accountCfg.clientSecret || this.config.common.outlook?.clientSecret,
         redirectUri: accountCfg.redirectUri || this.config.common.outlook?.redirectUri || "http://localhost:3000/callback",
-        scopes: ["User.Read", "Mail.Read", "Mail.ReadWrite", "Mail.Read.Shared", "Mail.ReadWrite.Shared"],
+        scopes: ["User.Read", "Mail.Read", "Mail.ReadWrite", "Mail.Read.Shared", "Mail.ReadWrite.Shared", "Calendars.ReadWrite"],
       };
 
       // We use clientId + tenantId as the key for managers to reuse tokens if possible

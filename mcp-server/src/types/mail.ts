@@ -22,6 +22,27 @@ export interface MailFolder {
   displayName: string;
 }
 
+export interface CalendarEvent {
+  id: string;
+  subject: string;
+  start: string;
+  end: string;
+  organizer?: string;
+  attendees?: Array<{ email: string; name?: string; response?: string }>;
+  location?: string;
+  body?: string;
+  bodyType?: "text" | "HTML";
+  webLink?: string;
+  isOnlineMeeting?: boolean;
+  onlineMeetingUrl?: string;
+}
+
+export interface TimeSlot {
+  start: string;
+  end: string;
+  confidence?: number;
+}
+
 export interface MailProvider {
   searchEmails(query: string, folder?: string, top?: number): Promise<MailMessage[]>;
   getEmail(id: string): Promise<MailMessage>;
@@ -47,6 +68,26 @@ export interface MailProvider {
     contentType: string;
     contentBytes: string;
   }): Promise<void>;
+
+  listCalendarEvents(start: string, end: string, top?: number): Promise<CalendarEvent[]>;
+  createCalendarEvent(event: {
+    subject: string;
+    start: string;
+    end: string;
+    timeZone?: string;
+    attendees?: string[];
+    body?: string;
+    bodyType?: "text" | "HTML";
+    location?: string;
+    isOnlineMeeting?: boolean;
+  }): Promise<CalendarEvent>;
+  findAvailableTimes(params: {
+    durationMinutes: number;
+    windowStart: string;
+    windowEnd: string;
+    attendees?: string[];
+    timeZone?: string;
+  }): Promise<TimeSlot[]>;
 }
 
 export type ProviderType = "outlook" | "gmail";

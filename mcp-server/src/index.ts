@@ -24,6 +24,9 @@ import { listFoldersTool } from "./tools/listFolders.js";
 import { findAttachmentsTool } from "./tools/findAttachments.js";
 import { copyAttachmentTool } from "./tools/copyAttachment.js";
 import { addAttachmentToDraftTool } from "./tools/addAttachmentToDraft.js";
+import { createCalendarEventTool } from "./tools/createCalendarEvent.js";
+import { listCalendarEventsTool } from "./tools/listCalendarEvents.js";
+import { findAvailableTimesTool } from "./tools/findAvailableTimes.js";
 
 // Load config
 let multiConfig: MultiAccountConfig;
@@ -88,6 +91,9 @@ async function main() {
         findAttachmentsTool,
         copyAttachmentTool,
         addAttachmentToDraftTool,
+        createCalendarEventTool,
+        listCalendarEventsTool,
+        findAvailableTimesTool,
       ],
     };
   });
@@ -128,6 +134,12 @@ async function main() {
           return await copyAttachmentTool.handler(provider, args || {});
         case "add_attachment_to_draft":
           return await addAttachmentToDraftTool.handler(provider, args || {});
+        case "create_calendar_event":
+          return await createCalendarEventTool.handler(provider, args || {});
+        case "list_calendar_events":
+          return await listCalendarEventsTool.handler(provider, args || {});
+        case "find_available_times":
+          return await findAvailableTimesTool.handler(provider, args || {});
         default:
           return {
             content: [{ type: "text", text: `Unknown tool: ${name}` }],

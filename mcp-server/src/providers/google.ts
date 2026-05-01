@@ -4,6 +4,8 @@ import {
   MailMessage,
   MailFolder,
   MailAttachment,
+  CalendarEvent,
+  TimeSlot,
 } from "../types/mail.js";
 
 export class GoogleProvider implements MailProvider {
@@ -142,39 +144,82 @@ export class GoogleProvider implements MailProvider {
     return res.data.id!;
   }
 
-  private buildMimeMessage(draft: { to: string, subject: string, body: string, bodyType?: string, originalEmailId?: string }): string {
+  private buildMimeMessage(
+    draft: { to: string, subject: string, body: string, bodyType?: string, originalEmailId?: string },
+    attachments?: Array<{ name: string; contentType: string; contentBytes: string }>
+  ): string {
     const contentType = draft.bodyType === "HTML" ? "text/html" : "text/plain";
+    
+    if (!attachments || attachments.length === 0) {
+      return [
+        `To: ${draft.to}`,
+        `Subject: ${draft.subject}`,
+        `Content-Type: ${contentType}; charset=utf-8`,
+        "MIME-Version: 1.0",
+        "",
+        draft.body
+      ].join("\r\n");
+    }
+
     const boundary = "boundary_" + Math.random().toString(36).substring(2);
     
-    let message = [
+    let messageParts = [
       `To: ${draft.to}`,
       `Subject: ${draft.subject}`,
+      `MIME-Version: 1.0`,
+      `Content-Type: multipart/mixed; boundary="${boundary}"`,
+      "",
+      `--${boundary}`,
       `Content-Type: ${contentType}; charset=utf-8`,
-      "MIME-Version: 1.0",
       "",
       draft.body
-    ].join("\r\n");
+    ];
 
-    return message;
+    for (const att of attachments) {
+      messageParts.push(
+        "",
+        `--${boundary}`,
+        `Content-Type: ${att.contentType}; name="${att.name}"`,
+        `Content-Disposition: attachment; filename="${att.name}"`,
+        `Content-Transfer-Encoding: base64`,
+        "",
+        att.contentBytes.replace(/-/g, "+").replace(/_/g, "/")
+      );
+    }
+
+    messageParts.push("", `--${boundary}--`, "");
+    return messageParts.join("\r\n");
   }
 
   async updateDraft(
     id: string,
     draft: { subject?: string; body?: string; bodyType?: "text" | "HTML" }
   ): Promise<void> {
-    // To update a draft in Gmail, you usually get the draft, then update its message
     const existingDraft = await this.gmail.users.drafts.get({ userId: "me", id });
-    const headers = existingDraft.data.message?.payload?.headers || [];
-    const to = headers.find(h => h.name === "To")?.value || "";
+    const messagePart = existingDraft.data.message;
+    if (!messagePart || !messagePart.id) throw new Error("Draft message missing");
+    
+    const headers = messagePart.payload?.headers || [];
+    const to = headers.find(h => h.name?.toLowerCase() === "to")?.value || "";
+    
+    // Fetch full existing message to get the old body and attachments
+    const fullMsg = await this.getEmail(messagePart.id);
     
     const newDraftData = {
         to,
-        subject: draft.subject || headers.find(h => h.name === "Subject")?.value || "",
-        body: draft.body || "", // Ideally we'd extract the old body if not provided
-        bodyType: draft.bodyType
+        subject: draft.subject !== undefined ? draft.subject : (fullMsg.subject || ""),
+        body: draft.body !== undefined ? draft.body : (fullMsg.body || ""),
+        bodyType: draft.bodyType || (fullMsg.bodyType as "text" | "HTML") || "text"
     };
 
-    const mimeMessage = this.buildMimeMessage(newDraftData);
+    const existingAttachments = await this.getAttachments(messagePart.id);
+    const attachmentsData = [];
+    for (const att of existingAttachments) {
+       const content = await this.getAttachmentContent(messagePart.id, att.id);
+       attachmentsData.push({ name: att.name, contentType: att.contentType, contentBytes: content });
+    }
+
+    const mimeMessage = this.buildMimeMessage(newDraftData, attachmentsData);
     const encodedMessage = Buffer.from(mimeMessage)
       .toString("base64")
       .replace(/\+/g, "-")
@@ -243,16 +288,82 @@ export class GoogleProvider implements MailProvider {
       messageId: messageId,
       id: attachmentId,
     });
-    return res.data.data!; // This is base64url encoded
+    // Ensure it's standard base64 for cross-provider compatibility
+    return (res.data.data || "").replace(/-/g, "+").replace(/_/g, "/");
   }
 
   async addAttachmentToDraft(
     draftId: string,
     attachment: { name: string; contentType: string; contentBytes: string }
   ): Promise<void> {
-    // Gmail drafts are immutable once created, you have to recreate them with attachments.
-    // For simplicity, this is often handled by building the MIME message with everything initially.
-    // Implement if needed, but for now we'll throw a placeholder error or skip.
-    throw new Error("Add attachment to draft not yet implemented for Gmail in this MVP.");
+    const existingDraft = await this.gmail.users.drafts.get({ userId: "me", id: draftId });
+    const messagePart = existingDraft.data.message;
+    if (!messagePart || !messagePart.id) throw new Error("Draft message missing");
+
+    const headers = messagePart.payload?.headers || [];
+    const to = headers.find(h => h.name?.toLowerCase() === "to")?.value || "";
+
+    const fullMsg = await this.getEmail(messagePart.id);
+
+    const draftData = {
+        to,
+        subject: fullMsg.subject || "",
+        body: fullMsg.body || "",
+        bodyType: fullMsg.bodyType || "text"
+    };
+
+    const existingAttachments = await this.getAttachments(messagePart.id);
+    const attachmentsData = [];
+    for (const att of existingAttachments) {
+       const content = await this.getAttachmentContent(messagePart.id, att.id);
+       attachmentsData.push({ name: att.name, contentType: att.contentType, contentBytes: content });
+    }
+
+    attachmentsData.push(attachment);
+
+    const mimeMessage = this.buildMimeMessage(draftData, attachmentsData);
+    const encodedMessage = Buffer.from(mimeMessage)
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+
+    await this.gmail.users.drafts.update({
+      userId: "me",
+      id: draftId,
+      requestBody: {
+        message: {
+          raw: encodedMessage,
+        },
+      },
+    });
+  }
+
+  async listCalendarEvents(_start: string, _end: string, _top?: number): Promise<CalendarEvent[]> {
+    throw new Error("Calendar operations are not yet supported for Gmail accounts. Use an Outlook account.");
+  }
+
+  async createCalendarEvent(_event: {
+    subject: string;
+    start: string;
+    end: string;
+    timeZone?: string;
+    attendees?: string[];
+    body?: string;
+    bodyType?: "text" | "HTML";
+    location?: string;
+    isOnlineMeeting?: boolean;
+  }): Promise<CalendarEvent> {
+    throw new Error("Calendar operations are not yet supported for Gmail accounts. Use an Outlook account.");
+  }
+
+  async findAvailableTimes(_params: {
+    durationMinutes: number;
+    windowStart: string;
+    windowEnd: string;
+    attendees?: string[];
+    timeZone?: string;
+  }): Promise<TimeSlot[]> {
+    throw new Error("Calendar operations are not yet supported for Gmail accounts. Use an Outlook account.");
   }
 }
