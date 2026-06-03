@@ -43,6 +43,7 @@ $scopeNames = @(
     "Files.ReadWrite.All",
     "Sites.ReadWrite.All",
     "Tasks.ReadWrite",
+    "Chat.ReadWrite",
     "People.Read"
 )
 

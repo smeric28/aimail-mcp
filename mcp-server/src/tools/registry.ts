@@ -22,6 +22,7 @@ import { calendarActionTools } from "./calendarActions.js";
 import { fileTools } from "./files.js";
 import { contactTools } from "./contacts.js";
 import { taskTools } from "./tasks.js";
+import { teamsTools } from "./teams.js";
 
 // Adapt a legacy tool object (with a `handler`) into a RegisteredTool. The
 // handlers have slightly different arities; the cast lets us call them all the
@@ -64,6 +65,7 @@ export const allTools: RegisteredTool[] = [
   ...fileTools,
   ...contactTools,
   ...taskTools,
+  ...teamsTools,
 ];
 
 export const toolsByName: Map<string, RegisteredTool> = new Map(

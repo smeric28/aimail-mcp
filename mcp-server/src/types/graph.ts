@@ -57,6 +57,23 @@ export interface TaskItem {
   listId?: string;
 }
 
+export interface ChatSummary {
+  id: string;
+  topic?: string;
+  chatType?: string; // oneOnOne | group | meeting
+  members?: string[];
+  lastUpdated?: string;
+  webUrl?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  from?: string;
+  createdDateTime?: string;
+  content?: string;
+  contentType?: string;
+}
+
 // --- Capability interfaces (Microsoft-only today) ---
 
 export interface FilesCapable {
@@ -128,6 +145,12 @@ export interface TasksCapable {
   deleteTask(listId: string, taskId: string): Promise<void>;
 }
 
+export interface TeamsCapable {
+  listChats(top?: number): Promise<ChatSummary[]>;
+  listChatMessages(chatId: string, top?: number): Promise<ChatMessage[]>;
+  sendChatMessage(chatId: string, content: string, contentType?: "text" | "html"): Promise<ChatMessage>;
+}
+
 // Runtime capability guards used by the tool router so we can return a clean
 // "not supported for this account" message instead of a crash.
 export function hasFiles(p: unknown): p is FilesCapable {
@@ -138,4 +161,7 @@ export function hasContacts(p: unknown): p is ContactsCapable {
 }
 export function hasTasks(p: unknown): p is TasksCapable {
   return typeof (p as TasksCapable)?.listTaskLists === "function";
+}
+export function hasTeams(p: unknown): p is TeamsCapable {
+  return typeof (p as TeamsCapable)?.listChats === "function";
 }

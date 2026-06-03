@@ -31,6 +31,9 @@ export const GRAPH_DELEGATED_SCOPES = [
   // Microsoft To Do tasks
   "Tasks.ReadWrite",
 
+  // Teams chat (read + send)
+  "Chat.ReadWrite",
+
   // Directory lookups for find-times / people
   "People.Read",
 ];

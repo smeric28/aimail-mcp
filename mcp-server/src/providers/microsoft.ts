@@ -11,16 +11,24 @@ import {
   FilesCapable,
   ContactsCapable,
   TasksCapable,
+  TeamsCapable,
   DriveItem,
   SharePointSite,
   ShareLink,
   ContactCard,
   TaskList,
   TaskItem,
+  ChatSummary,
+  ChatMessage,
 } from "../types/graph.js";
 
+// Graph simple-upload caps at 4 MB; larger files need an upload session.
+const SIMPLE_UPLOAD_LIMIT = 4 * 1024 * 1024;
+// Upload-session chunks must be a multiple of 320 KiB.
+const UPLOAD_CHUNK_SIZE = 5 * 320 * 1024; // 1600 KiB
+
 export class MicrosoftProvider
-  implements MailProvider, FilesCapable, ContactsCapable, TasksCapable
+  implements MailProvider, FilesCapable, ContactsCapable, TasksCapable, TeamsCapable
 {
   private client: Client;
   private draftsFolderName: string;
@@ -565,18 +573,57 @@ export class MicrosoftProvider
   }): Promise<DriveItem> {
     const base = this.driveRoot(opts.driveId);
     const buffer = Buffer.from(opts.contentBytes, "base64");
-    let endpoint: string;
-    if (opts.parentItemId) {
-      endpoint = `${base}/items/${opts.parentItemId}:/${encodeURIComponent(opts.name)}:/content`;
-    } else {
-      const parent = opts.parentPath?.replace(/^\/+|\/+$/g, "");
-      endpoint = parent
-        ? `${base}/root:/${parent}/${encodeURIComponent(opts.name)}:/content`
-        : `${base}/root:/${encodeURIComponent(opts.name)}:/content`;
+    // Path used to address the destination item (with the :/ ... :/ syntax).
+    const itemPath = opts.parentItemId
+      ? `${base}/items/${opts.parentItemId}:/${encodeURIComponent(opts.name)}:`
+      : (() => {
+          const parent = opts.parentPath?.replace(/^\/+|\/+$/g, "");
+          return parent
+            ? `${base}/root:/${parent}/${encodeURIComponent(opts.name)}:`
+            : `${base}/root:/${encodeURIComponent(opts.name)}:`;
+        })();
+
+    if (buffer.length <= SIMPLE_UPLOAD_LIMIT) {
+      const result = await this.client.api(`${itemPath}/content`).put(buffer);
+      return this.mapDriveItem(result, opts.driveId);
     }
-    // Simple upload (<4MB). Larger files would need an upload session.
-    const result = await this.client.api(endpoint).put(buffer);
+
+    // Large file: create an upload session and PUT chunks to the upload URL.
+    const session = await this.client.api(`${itemPath}/createUploadSession`).post({
+      item: { "@microsoft.graph.conflictBehavior": "replace" },
+    });
+    const result = await this.uploadInChunks(session.uploadUrl, buffer);
     return this.mapDriveItem(result, opts.driveId);
+  }
+
+  private async uploadInChunks(uploadUrl: string, buffer: Buffer): Promise<any> {
+    const total = buffer.length;
+    let offset = 0;
+    let last: any;
+    while (offset < total) {
+      const end = Math.min(offset + UPLOAD_CHUNK_SIZE, total);
+      const chunk = buffer.subarray(offset, end);
+      // The upload URL is pre-authenticated; no Authorization header needed.
+      const resp = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Length": String(chunk.length),
+          "Content-Range": `bytes ${offset}-${end - 1}/${total}`,
+        },
+        // Cast: conflicting fetch type libs narrow BodyInit; Node's runtime
+        // fetch accepts a typed-array body.
+        body: new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength) as any,
+      });
+      if (!resp.ok && resp.status !== 202) {
+        throw new Error(`Upload chunk failed (${resp.status}): ${await resp.text()}`);
+      }
+      // The final chunk returns the driveItem (200/201); interim chunks return 202.
+      if (resp.status === 200 || resp.status === 201) {
+        last = await resp.json();
+      }
+      offset = end;
+    }
+    return last;
   }
 
   async createFolder(opts: {
@@ -802,6 +849,58 @@ export class MicrosoftProvider
     await this.client
       .api(`${this.userPrefix}/todo/lists/${listId}/tasks/${taskId}`)
       .delete();
+  }
+
+  // ===========================================================================
+  // Teams chat
+  // ===========================================================================
+
+  async listChats(top: number = 25): Promise<ChatSummary[]> {
+    // Chats are only addressable for the signed-in user (/me), not /users/{id}.
+    const res = await this.client
+      .api(`/me/chats`)
+      .expand("members")
+      .top(Math.min(top, 50))
+      .get();
+    return (res.value || []).map((c: any) => ({
+      id: c.id,
+      topic: c.topic,
+      chatType: c.chatType,
+      members: (c.members || []).map((m: any) => m.displayName).filter(Boolean),
+      lastUpdated: c.lastUpdatedDateTime,
+      webUrl: c.webUrl,
+    }));
+  }
+
+  async listChatMessages(chatId: string, top: number = 25): Promise<ChatMessage[]> {
+    const res = await this.client
+      .api(`/me/chats/${chatId}/messages`)
+      .top(Math.min(top, 50))
+      .get();
+    return (res.value || []).map((m: any) => ({
+      id: m.id,
+      from: m.from?.user?.displayName,
+      createdDateTime: m.createdDateTime,
+      content: m.body?.content,
+      contentType: m.body?.contentType,
+    }));
+  }
+
+  async sendChatMessage(
+    chatId: string,
+    content: string,
+    contentType: "text" | "html" = "text"
+  ): Promise<ChatMessage> {
+    const m = await this.client.api(`/me/chats/${chatId}/messages`).post({
+      body: { content, contentType },
+    });
+    return {
+      id: m.id,
+      from: m.from?.user?.displayName,
+      createdDateTime: m.createdDateTime,
+      content: m.body?.content,
+      contentType: m.body?.contentType,
+    };
   }
 
   private mapEvent(e: any): CalendarEvent {

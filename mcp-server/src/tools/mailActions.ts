@@ -119,6 +119,34 @@ export const mailActionTools: RegisteredTool[] = [
     },
   },
   {
+    name: "download_attachment",
+    description:
+      "Read the content of an email attachment. Returns its name, MIME type, and base64-encoded bytes. " +
+      "Use find_attachments first to get the message ID and attachment ID.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        messageId: { type: "string", description: "ID of the email containing the attachment" },
+        attachmentId: { type: "string", description: "ID of the attachment (from find_attachments)" },
+        ...accountFields,
+      },
+      required: ["messageId", "attachmentId"],
+    },
+    async run(provider, args) {
+      const messageId = args.messageId as string;
+      const attachmentId = args.attachmentId as string;
+      const all = await provider.getAttachments(messageId);
+      const meta = all.find((a) => a.id === attachmentId);
+      const contentBytes = await provider.getAttachmentContent(messageId, attachmentId);
+      return ok({
+        name: meta?.name,
+        contentType: meta?.contentType,
+        size: meta?.size,
+        contentBytes,
+      });
+    },
+  },
+  {
     name: "flag_email",
     description: "Flag or unflag an email for follow-up.",
     inputSchema: {

@@ -16,11 +16,12 @@ to run as a shared, multi-user remote connector available in the Claude apps on
 | Surface | Tools |
 | --- | --- |
 | **Mail** | `search_emails`, `get_email`, `create_draft`, `update_draft`, `delete_draft`, `send_email`, `send_draft`, `reply_to_email`, `forward_email`, `move_email`, `set_email_read`, `flag_email`, `list_mail_folders` |
-| **Attachments** | `find_attachments`, `copy_attachment_to_draft`, `add_attachment_to_draft` |
+| **Attachments** | `find_attachments`, `download_attachment`, `copy_attachment_to_draft`, `add_attachment_to_draft` |
 | **Calendar** | `list_calendar_events`, `create_calendar_event`, `update_calendar_event`, `cancel_calendar_event`, `delete_calendar_event`, `respond_to_calendar_event`, `find_available_times` |
-| **Files (OneDrive + SharePoint)** | `list_files`, `search_files`, `read_file`, `upload_file`, `create_folder`, `delete_file`, `share_file`, `list_sharepoint_sites`, `list_site_drives` |
+| **Files (OneDrive + SharePoint)** | `list_files`, `search_files`, `read_file`, `upload_file` (large files via upload session), `create_folder`, `delete_file`, `share_file`, `list_sharepoint_sites`, `list_site_drives` |
 | **Contacts** | `list_contacts`, `search_contacts`, `create_contact`, `update_contact`, `delete_contact` |
 | **Tasks (Microsoft To Do)** | `list_task_lists`, `list_tasks`, `create_task`, `update_task`, `complete_task`, `delete_task` |
+| **Teams chat** | `list_chats`, `list_chat_messages`, `send_chat_message` |
 | **Accounts** | `list_accounts` |
 
 Gmail is also supported for mail in local mode via a shared `MailProvider`
@@ -187,12 +188,13 @@ curl localhost:8080/.well-known/oauth-protected-resource
 ## Roadmap
 
 - [x] Remote HTTP transport + Entra OAuth bridge (iPhone/desktop/web)
-- [x] Full Graph surface: mail send/reply/forward, calendar update/cancel/RSVP,
-      OneDrive + SharePoint files, contacts, To Do tasks
+- [x] Full Graph surface: mail send/reply/forward + attachment download,
+      calendar update/cancel/RSVP, OneDrive + SharePoint files, contacts,
+      To Do tasks, Teams chat
+- [x] Large-file upload sessions (>4 MB)
 - [x] Hosting artifacts (Dockerfile, Azure Container Apps deploy)
 - [ ] On-Behalf-Of token exchange (own API audience) + Redis-backed auth state
-- [ ] Large-file upload sessions (>4 MB) and SharePoint list items
-- [ ] Teams chat/messages and Planner
+- [ ] SharePoint list items; Planner; Teams channel messages
 - [ ] Per-tool scope minimization & consent screens
 
 ---
