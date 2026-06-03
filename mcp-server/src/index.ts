@@ -58,7 +58,7 @@ async function startStdio() {
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("AI Mail MCP Server started (stdio, multi-account)");
+  console.error("FBI-MCP-O365 Server started (stdio, multi-account)");
 }
 
 async function startHttp() {

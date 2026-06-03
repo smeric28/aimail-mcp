@@ -20,7 +20,7 @@ import crypto from "crypto";
  */
 
 export interface BridgeConfig {
-  publicBaseUrl: string; // e.g. https://aimail.fireballz.ai
+  publicBaseUrl: string; // e.g. https://fbi-mcp-o365.fireballz.ai
   tenantId: string;
   clientId: string;
   clientSecret: string;

@@ -1,4 +1,4 @@
-# AI Mail MCP — Microsoft 365 / Graph Connector
+# FBI-MCP-O365 — Microsoft 365 / Graph Connector
 
 A Model Context Protocol (MCP) server that gives Claude full read **and write**
 access to Microsoft 365 through the Microsoft Graph API — mirroring the official
@@ -37,7 +37,7 @@ reached.
 
 ```
                      ┌───────────────────────────────────────────┐
-                     │            aimail-mcp server                │
+                     │           FBI-MCP-O365 server               │
    Claude apps ──────┤  buildMcpServer() + shared tool registry    │
   (iOS/desktop/web)  │     │                         │             │
         │            │  stdio transport         HTTP transport      │
@@ -45,7 +45,7 @@ reached.
         │            └─────┼─────────────────────────┼─────────────┘
         │                  │                          │
         │            MSAL local cache         OAuth bridge → Entra ID
-        │            (~/.aimail-mcp-cache)     (per-user delegated token)
+        │            (~/.fbi-mcp-o365-cache)   (per-user delegated token)
         ▼                                            │
    Custom connector  ───────────────────────────────┘
    over HTTPS + OAuth                         Microsoft Graph API
@@ -80,14 +80,14 @@ users:
 ```powershell
 ./scripts/update-azure-app-graph-scopes.ps1 `
     -AppId <application-client-id> `
-    -PublicBaseUrl https://aimail.fireballz.ai `
+    -PublicBaseUrl https://fbi-mcp-o365.fireballz.ai `
     -GrantAdminConsent
 ```
 
 This requests the delegated scopes in `mcp-server/src/config/scopes.ts`
 (`Mail.ReadWrite`, `Mail.Send`, `Calendars.ReadWrite`, `Contacts.ReadWrite`,
 `Files.ReadWrite.All`, `Sites.ReadWrite.All`, `Tasks.ReadWrite`, …) and adds the
-redirect URI `https://aimail.fireballz.ai/auth/callback` (type **Web**).
+redirect URI `https://fbi-mcp-o365.fireballz.ai/auth/callback` (type **Web**).
 
 > Need a fresh registration instead? Use `scripts/setup-azure-ad-graph.ps1`.
 
@@ -95,9 +95,9 @@ redirect URI `https://aimail.fireballz.ai/auth/callback` (type **Web**).
 
 ```powershell
 ./scripts/deploy-azure-containerapp.ps1 `
-    -ResourceGroup aimail-rg -Location eastus `
+    -ResourceGroup fbi-mcp-o365-rg -Location eastus `
     -ClientId <app-id> -ClientSecret <secret> -TenantId <tenant-guid> `
-    -PublicBaseUrl https://aimail.fireballz.ai
+    -PublicBaseUrl https://fbi-mcp-o365.fireballz.ai
 ```
 
 Azure Container Apps is the recommended host (same directory as the app
@@ -114,7 +114,7 @@ In Claude (iPhone, desktop, or web): **Settings → Connectors → Add custom
 connector**, then enter:
 
 ```
-https://aimail.fireballz.ai/mcp
+https://fbi-mcp-o365.fireballz.ai/mcp
 ```
 
 Claude discovers the OAuth metadata, registers itself, and sends the user
@@ -160,7 +160,7 @@ npm start              # MCP_TRANSPORT=stdio
 
 Register with Claude Desktop / OpenCode by pointing the MCP client at
 `node /absolute/path/mcp-server/dist/index.js`. First call opens a browser for
-Microsoft sign-in; the token is cached under `~/.aimail-mcp-cache`.
+Microsoft sign-in; the token is cached under `~/.fbi-mcp-o365-cache`.
 
 For multiple accounts/shared mailboxes, set `ACCOUNTS_CONFIG` (JSON) — see
 `src/auth/providerManager.ts`.
@@ -201,5 +201,6 @@ curl localhost:8080/.well-known/oauth-protected-resource
 
 ## Repos
 
-This connector is mirrored to the `Fireball-WhiteTeam` org for team use. The
+Part of the Fireball `FBI-MCP-*` connector family. Mirrored to the
+`Fireball-WhiteTeam` org (`Fireball-WhiteTeam/FBI-MCP-O365`) for team use; the
 canonical development repo is `smeric28/aimail-mcp`.

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Build and deploy the AI Mail MCP remote server to Azure Container Apps.
+    Build and deploy the FBI-MCP-O365 remote server to Azure Container Apps.
 
 .DESCRIPTION
     Creates (or updates) an Azure Container App that hosts the MCP server over
@@ -15,17 +15,17 @@
 
 .EXAMPLE
     ./deploy-azure-containerapp.ps1 `
-        -ResourceGroup aimail-rg `
+        -ResourceGroup fbi-mcp-o365-rg `
         -Location eastus `
         -ClientId <app-id> -ClientSecret <secret> -TenantId <tenant-guid> `
-        -PublicBaseUrl https://aimail.fireballz.ai
+        -PublicBaseUrl https://fbi-mcp-o365.fireballz.ai
 #>
 
 param(
     [Parameter(Mandatory = $true)][string]$ResourceGroup,
     [Parameter(Mandatory = $false)][string]$Location = "eastus",
-    [Parameter(Mandatory = $false)][string]$AppName = "aimail-mcp",
-    [Parameter(Mandatory = $false)][string]$EnvName = "aimail-mcp-env",
+    [Parameter(Mandatory = $false)][string]$AppName = "fbi-mcp-o365",
+    [Parameter(Mandatory = $false)][string]$EnvName = "fbi-mcp-o365-env",
     [Parameter(Mandatory = $true)][string]$ClientId,
     [Parameter(Mandatory = $true)][string]$ClientSecret,
     [Parameter(Mandatory = $true)][string]$TenantId,

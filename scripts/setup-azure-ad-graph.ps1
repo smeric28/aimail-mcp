@@ -9,7 +9,7 @@
 
 param(
     [Parameter(Mandatory = $false)]
-    [string]$AppName = "OpenCode Email MCP"
+    [string]$AppName = "FBI-MCP-O365"
 )
 
 $ErrorActionPreference = "Stop"
@@ -87,7 +87,7 @@ Write-Host "IMPORTANT: Store the Client Secret securely!" -ForegroundColor Red
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Cyan
 Write-Host "1. Grant admin consent in Azure Portal for the app permissions"
-Write-Host "2. Update C:\codebase\aimail\config\mcp-servers.json with these credentials"
+Write-Host "2. Update your MCP client config with these credentials"
 Write-Host "3. Run .\build-and-register.ps1 to complete setup"
 
 # Disconnect

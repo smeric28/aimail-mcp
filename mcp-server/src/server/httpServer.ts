@@ -35,7 +35,7 @@ export async function startHttpServer(config: HttpServerConfig): Promise<void> {
     })
   );
 
-  app.get("/healthz", (_req, res) => res.json({ status: "ok", service: "aimail-mcp" }));
+  app.get("/healthz", (_req, res) => res.json({ status: "ok", service: "fbi-mcp-o365" }));
 
   // OAuth: authorization-server bridge to Entra (authorize/callback/token/register).
   app.use(
@@ -122,7 +122,7 @@ export async function startHttpServer(config: HttpServerConfig): Promise<void> {
 
   await new Promise<void>((resolve) => {
     app.listen(config.port, () => {
-      console.error(`AI Mail MCP remote server listening on :${config.port}`);
+      console.error(`FBI-MCP-O365 remote server listening on :${config.port}`);
       console.error(`Public base URL: ${config.publicBaseUrl}`);
       console.error(`MCP endpoint:    ${config.publicBaseUrl}/mcp`);
       resolve();

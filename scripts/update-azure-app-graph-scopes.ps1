@@ -4,7 +4,7 @@
     URI) to an EXISTING Entra app registration, then grant admin consent.
 
 .DESCRIPTION
-    The AI Mail MCP connector mirrors the Microsoft 365 connector surface with
+    The FBI-MCP-O365 connector mirrors the Microsoft 365 connector surface with
     write access: mail, calendar, contacts, OneDrive/SharePoint files, and To
     Do tasks. This script patches an existing app registration to request all
     of the required delegated scopes and adds the remote OAuth callback URL.
@@ -12,12 +12,12 @@
     Run scripts/setup-azure-ad-graph.ps1 first only if the app does not exist.
 
 .EXAMPLE
-    ./update-azure-app-graph-scopes.ps1 -AppId <application-client-id> -PublicBaseUrl https://aimail.fireballz.ai
+    ./update-azure-app-graph-scopes.ps1 -AppId <application-client-id> -PublicBaseUrl https://fbi-mcp-o365.fireballz.ai
 #>
 
 param(
     [Parameter(Mandatory = $true)][string]$AppId,
-    [Parameter(Mandatory = $false)][string]$PublicBaseUrl = "https://aimail.fireballz.ai",
+    [Parameter(Mandatory = $false)][string]$PublicBaseUrl = "https://fbi-mcp-o365.fireballz.ai",
     [Parameter(Mandatory = $false)][switch]$GrantAdminConsent
 )
 

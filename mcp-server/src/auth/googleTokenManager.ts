@@ -27,7 +27,7 @@ export class GoogleTokenManager {
       config.redirectUri
     );
 
-    const cacheDir = path.join(os.homedir(), ".aimail-mcp-cache");
+    const cacheDir = path.join(os.homedir(), ".fbi-mcp-o365-cache");
     if (!fs.existsSync(cacheDir)) {
       fs.mkdirSync(cacheDir, { recursive: true });
     }

@@ -18,7 +18,7 @@ export interface McpServerDeps {
   draftsFolderName: string;
 }
 
-const SERVER_INFO = { name: "aimail-mcp", version: "3.0.0" };
+const SERVER_INFO = { name: "fbi-mcp-o365", version: "3.0.0" };
 
 /**
  * Build a fully-wired MCP Server. The transport (stdio or HTTP) is attached by

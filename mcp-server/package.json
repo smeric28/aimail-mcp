@@ -1,7 +1,7 @@
 {
-  "name": "aimail-mcp",
+  "name": "fbi-mcp-o365",
   "version": "3.0.0",
-  "description": "Microsoft 365 / Graph MCP connector (mail, calendar, files, contacts, tasks) — local stdio and remote OAuth transports",
+  "description": "FBI-MCP-O365 — Microsoft 365 / Graph MCP connector (mail, calendar, files, contacts, tasks, Teams) — local stdio and remote OAuth transports",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
