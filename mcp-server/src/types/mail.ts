@@ -88,6 +88,47 @@ export interface MailProvider {
     attendees?: string[];
     timeZone?: string;
   }): Promise<TimeSlot[]>;
+
+  // --- Optional mail write actions (implemented by Microsoft; Gmail may omit) ---
+  sendEmail?(message: {
+    to: string;
+    cc?: string;
+    bcc?: string;
+    subject: string;
+    body: string;
+    bodyType?: "text" | "HTML";
+    saveToSentItems?: boolean;
+  }): Promise<void>;
+  sendDraft?(draftId: string): Promise<void>;
+  replyToEmail?(id: string, opts: {
+    body: string;
+    bodyType?: "text" | "HTML";
+    replyAll?: boolean;
+    send?: boolean;
+  }): Promise<string | void>;
+  forwardEmail?(id: string, opts: {
+    to: string;
+    comment?: string;
+    send?: boolean;
+  }): Promise<string | void>;
+  markEmailRead?(id: string, isRead: boolean): Promise<void>;
+  flagEmail?(id: string, flagged: boolean): Promise<void>;
+
+  // --- Optional calendar write actions ---
+  updateCalendarEvent?(id: string, changes: {
+    subject?: string;
+    start?: string;
+    end?: string;
+    timeZone?: string;
+    location?: string;
+    body?: string;
+    bodyType?: "text" | "HTML";
+    attendees?: string[];
+  }): Promise<CalendarEvent>;
+  cancelCalendarEvent?(id: string, comment?: string): Promise<void>;
+  deleteCalendarEvent?(id: string): Promise<void>;
+  respondToCalendarEvent?(id: string, response: "accept" | "decline" | "tentativelyAccept", comment?: string): Promise<void>;
+  getCalendarEvent?(id: string): Promise<CalendarEvent>;
 }
 
 export type ProviderType = "outlook" | "gmail";
