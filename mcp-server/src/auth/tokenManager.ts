@@ -36,7 +36,7 @@ export class TokenManager {
     this.config = config;
 
     // Use a stable, OS-level cache directory
-    const cacheDir = path.join(os.homedir(), ".aimail-mcp-cache");
+    const cacheDir = path.join(os.homedir(), ".fbi-mcp-o365-cache");
     if (!fs.existsSync(cacheDir)) {
       console.error(`Creating cache directory at: ${cacheDir}`);
       fs.mkdirSync(cacheDir, { recursive: true });

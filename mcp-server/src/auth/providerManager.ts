@@ -3,6 +3,7 @@ import { GoogleTokenManager } from "./googleTokenManager.js";
 import { MicrosoftProvider } from "../providers/microsoft.js";
 import { GoogleProvider } from "../providers/google.js";
 import { MailProvider, AccountInfo } from "../types/mail.js";
+import { GRAPH_DELEGATED_SCOPES } from "../config/scopes.js";
 
 export interface MultiAccountConfig {
   accounts: Array<{
@@ -59,7 +60,7 @@ export class ProviderManager {
         tenantId: accountCfg.tenantId || this.config.common.outlook?.tenantId || "organizations",
         clientSecret: accountCfg.clientSecret || this.config.common.outlook?.clientSecret,
         redirectUri: accountCfg.redirectUri || this.config.common.outlook?.redirectUri || "http://localhost:3000/callback",
-        scopes: ["User.Read", "Mail.Read", "Mail.ReadWrite", "Mail.Read.Shared", "Mail.ReadWrite.Shared", "Calendars.ReadWrite"],
+        scopes: GRAPH_DELEGATED_SCOPES,
       };
 
       // We use clientId + tenantId as the key for managers to reuse tokens if possible
